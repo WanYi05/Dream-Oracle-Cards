@@ -1,0 +1,10 @@
+Name: pandas
+Version: 2.3.0
+Name: Jinja2
+Version: 3.1.6
+Name: beautifulsoup4
+Version: 4.13.4
+Name: requests
+Version: 2.32.4
+Name: rich
+Version: 14.0.0
