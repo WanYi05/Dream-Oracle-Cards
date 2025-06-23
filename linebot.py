@@ -1,3 +1,4 @@
+# linebot.py
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
@@ -5,12 +6,16 @@ from linebot.v3.messaging import (
     Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from dotenv import load_dotenv
+import os
 
-from main import process_dream  # 🔸 加這行
+from dream_core import process_dream  # ✅ 改這裡！
+
+load_dotenv()
+configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
 app = Flask(__name__)
-configuration = Configuration(access_token='YOUR_CHANNEL_ACCESS_TOKEN')
-handler = WebhookHandler('YOUR_CHANNEL_SECRET')
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -29,8 +34,6 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
-
-    # 判斷離開或處理夢境
     if user_input.lower() in ["q", "quit", "exit"]:
         reply = "👋 感謝使用 Dream Oracle，再會～"
     else:
