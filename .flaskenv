@@ -1,0 +1,2 @@
+FLASK_APP=bot_app
+FLASK_RUN_PORT=5001
