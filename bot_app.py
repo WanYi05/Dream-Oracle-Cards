@@ -1,10 +1,11 @@
 # bot_app.py
 
-from flask import Flask, request, abort
+from flask import Flask, request, abort, send_from_directory
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
-    Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, ImageMessage
+    Configuration, ApiClient, MessagingApi, ReplyMessageRequest,
+    TextMessage, ImageMessage
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from dotenv import load_dotenv
@@ -19,6 +20,11 @@ handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
 # 初始化 Flask App
 app = Flask(__name__)
+
+# ✅ 公開圖片路由：讓 /Cards/<filename> 能正確顯示
+@app.route("/Cards/<path:filename>")
+def serve_card_image(filename):
+    return send_from_directory("Cards", filename)
 
 # ✅ 加入首頁路由，避免 404
 @app.route("/", methods=["GET"])
@@ -59,8 +65,8 @@ def handle_message(event):
         reply_text = result["text"]
         image_filename = result["image"]
 
-        # ✅ 替換成你 Render 的實際網址
-        image_url = f"https://dream-oracle.onrender.com/{image_filename}"
+        # ✅ 正確的圖片網址路徑，注意加上 /cards/
+        image_url = f"https://dream-oracle.onrender.com/Cards/{image_filename}"
 
         messages = [
             TextMessage(text=reply_text),
