@@ -15,11 +15,17 @@ def process_dream(keyword):
     card = draw_card(emotion)
     save_result(keyword, dream_text, emotion, card)
 
-    # 對外統一格式回傳
-    return f"""🔍 解夢關鍵字：{keyword}
+    # 文字訊息內容
+    text = f"""🔍 解夢關鍵字：{keyword}
 🧠 解夢結果：
 {dream_text}
 
 🎭 情緒判定：{emotion}
 🃏 命定卡牌：「{card['title']}」
 👉 {card['message']}"""
+
+    # 回傳文字 + 圖片
+    return {
+        "text": text,
+        "image": card["image"]  # 例如 "A1.jpg"
+    }

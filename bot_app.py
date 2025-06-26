@@ -4,7 +4,7 @@ from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
-    Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
+    Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, ImageMessage
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from dotenv import load_dotenv
@@ -50,17 +50,32 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
+
     if user_input.lower() in ["q", "quit", "exit"]:
-        reply = "👋 感謝使用 Dream Oracle，再會～"
+        reply_text = "👋 感謝使用 Dream Oracle，再會～"
+        messages = [TextMessage(text=reply_text)]
     else:
-        reply = process_dream(user_input)
+        result = process_dream(user_input)
+        reply_text = result["text"]
+        image_filename = result["image"]
+
+        # ✅ 替換成你 Render 的實際網址
+        image_url = f"https://dream-oracle.onrender.com/{image_filename}"
+
+        messages = [
+            TextMessage(text=reply_text),
+            ImageMessage(
+                original_content_url=image_url,
+                preview_image_url=image_url
+            )
+        ]
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
-                messages=[TextMessage(text=reply)]
+                messages=messages
             )
         )
 
