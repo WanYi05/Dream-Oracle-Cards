@@ -56,6 +56,7 @@ def callback():
 # 處理 LINE 的文字訊息事件
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
+    print("👤 使用者 ID：", event.source.user_id)
     user_input = event.message.text.strip()
 
     # ✅ [新增指令]：格式為「新增 關鍵字 網址」
