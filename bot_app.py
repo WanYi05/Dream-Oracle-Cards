@@ -87,7 +87,8 @@ def handle_message(event):
         messages = [TextMessage(text=reply_text)]
 
     else:
-        result = process_dream(user_input)
+        user_id = event.source.user_id  # ✅ 抓取使用者 ID
+        result = process_dream(user_input, user_id=user_id)  # ✅ 傳給 dream_core.py
         reply_text = result["text"]
         image_filename = result["image"]
         image_url = f"https://dream-oracle.onrender.com/Cards/{image_filename}"

@@ -1,5 +1,7 @@
 # dream_core.py
 import random
+import os
+from datetime import datetime
 from dream_parser import get_dream_interpretation
 from emotion_mapper import map_emotion
 from oracle_engine import draw_card
@@ -11,10 +13,19 @@ ALL_CARD_IMAGES = [
     "E1.jpg", "F1.jpg", "G1.jpg", "H1.jpg"
 ]
 
-def process_dream(keyword):
+def process_dream(keyword, user_id=None):  # ✅ 多加一個 user_id 參數
     dream_text = get_dream_interpretation(keyword)
 
     if dream_text.startswith("⚠️"):
+        # ✅ 若查無結果，自動記錄
+        log_dir = "output"
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        with open(os.path.join(log_dir, "missing_keywords.log"), "a", encoding="utf-8") as f:
+            line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {user_id or 'anonymous'} | {keyword}\n"
+            f.write(line)
+
         emotion = "未知"
         card = {
             "title": "無法對應情緒",
