@@ -40,3 +40,5 @@ def save_result(keyword, dream_text, emotion, card):
 
     conn.commit()
     conn.close()
+
+#Hi
