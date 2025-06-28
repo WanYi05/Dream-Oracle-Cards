@@ -22,29 +22,37 @@ ALL_CARD_IMAGES = [
 def process_dream(keyword, user_id=None):
     dream_text = get_dream_interpretation(keyword)
 
+    print(f"📥 使用者輸入關鍵字：{keyword}")
+    print(f"🧠 解夢結果：{dream_text}")
+
     if dream_text.startswith("⚠️"):
-        # ✅ 寫入 missing log 並印出
+        # ✅ 寫入 missing log
         log_dir = "output"
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         log_path = os.path.join(log_dir, "missing_keywords.log")
-        line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {user_id or 'anonymous'} | {keyword}\n"
+        log_line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {user_id or 'anonymous'} | {keyword}\n"
         with open(log_path, "a", encoding="utf-8") as f:
-            f.write(line)
-        print(f"[MISSING LOG] {line.strip()}")  # ✅ 印出到 Render Logs
+            f.write(log_line)
+
+        print(f"[MISSING LOG] {log_line.strip()}")  # ✅ 印出到 Render Logs
 
         # ✅ 發送 LINE 推播通知開發者
         access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
         developer_user_id = os.getenv("DEVELOPER_USER_ID")
         if access_token and developer_user_id:
             message = f"🛑 使用者 {user_id or 'unknown'} 查詢「{keyword}」，但查無解夢資料"
-            configuration = Configuration(access_token=access_token)
-            with ApiClient(configuration) as api_client:
-                line_bot_api = MessagingApi(api_client)
-                line_bot_api.push_message(
-                    to=developer_user_id,
-                    messages=[TextMessage(text=message)]
-                )
+            try:
+                configuration = Configuration(access_token=access_token)
+                with ApiClient(configuration) as api_client:
+                    line_bot_api = MessagingApi(api_client)
+                    line_bot_api.push_message(
+                        to=developer_user_id,
+                        messages=[TextMessage(text=message)]
+                    )
+                print(f"[PUSH] 已推送通知給開發者：{message}")
+            except Exception as e:
+                print(f"[ERROR] 發送開發者推播時出錯：{e}")
 
         # ✅ 回傳預設卡牌
         emotion = "未知"
