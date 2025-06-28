@@ -1,18 +1,13 @@
 from utils import init_db, save_result
 
-# ✅ 第一次先建立資料庫和資料表
-init_db()
+init_db()  # 第一次使用時建立資料夾與檔案
 
-# ✅ 模擬一筆資料
-keyword = "掉牙"
-dream_text = "夢到掉牙，可能表示焦慮或家中有變動。"
-emotion = "焦慮"
-card = {
-    "title": "改變的訊號",
-    "message": "勇敢面對轉變，別害怕失去。"
-}
-
-# ✅ 儲存進資料庫
-save_result(keyword, dream_text, emotion, card)
-
-print("✅ 資料已成功寫入 SQLite 資料庫！")
+save_result(
+    keyword="蛇",
+    dream_text="夢見蛇代表潛在危險與內在恐懼。",
+    emotion="恐懼",
+    card={
+        "title": "內心的影子",
+        "message": "面對恐懼，你才能真正自由。"
+    }
+)
