@@ -1,32 +1,56 @@
-import csv
+import sqlite3
 import os
 from datetime import datetime
 
-def save_result(keyword, dream_text, emotion, card):
-    """
-    將輸入的夢境、解析、情緒、卡牌建議寫入 CSV 檔案
-    """
-    output_dir = "output"
-    output_file = os.path.join(output_dir, "dream_log.csv")
+# 資料庫路徑
+DB_PATH = "output/dream_log.db"
 
+def init_db():
+    """
+    初始化 SQLite 資料庫與資料表
+    """
     # 確保 output 資料夾存在
+    output_dir = os.path.dirname(DB_PATH)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # 檢查檔案是否已存在（決定是否寫入標題）
-    file_exists = os.path.isfile(output_file)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
 
-    with open(output_file, mode="a", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
+    # 建立資料表
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS draws (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            keyword TEXT,
+            emotion TEXT,
+            title TEXT,
+            message TEXT,
+            dream_text TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
 
-        if not file_exists:
-            writer.writerow(["timestamp", "keyword", "emotion", "title", "message", "dream_text"])
+def save_result(keyword, dream_text, emotion, card):
+    """
+    儲存一筆抽卡結果到 SQLite 資料庫
+    """
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
 
-        writer.writerow([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            keyword,
-            emotion,
-            card["title"],   # ✅ 卡牌標題
-            card["message"],      # ✅ 建議文字（原本錯寫為 card["message"]）
-            dream_text
-        ])
+    c.execute('''
+        INSERT INTO draws (timestamp, keyword, emotion, title, message, dream_text)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        keyword,
+        emotion,
+        card["title"],
+        card["message"],
+        dream_text
+    ))
+
+    conn.commit()
+    conn.close()
