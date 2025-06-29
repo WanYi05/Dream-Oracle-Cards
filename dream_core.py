@@ -7,9 +7,6 @@ from emotion_mapper import map_emotion
 from oracle_engine import draw_card
 from utils import save_result
 
-from linebot.v3 import Configuration
-from linebot.v3.messaging import MessagingApi, ApiClient, TextMessage
-
 # ✅ 載入 .env 檔
 load_dotenv()
 
@@ -31,25 +28,29 @@ def log_missing_keyword(keyword, user_id=None):
     print(f"[MISSING LOG] {log_line.strip()}")
 
 def notify_developer(keyword, user_id=None):
-    access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-    developer_user_id = os.getenv("DEVELOPER_USER_ID")
-
-    if not access_token or not developer_user_id:
-        print("[WARNING] 環境變數 LINE_CHANNEL_ACCESS_TOKEN 或 DEVELOPER_USER_ID 未設定，無法推播")
-        return
-
-    message = f"🛑 使用者 {user_id or 'unknown'} 查詢「{keyword}」，但查無解夢資料"
     try:
+        access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+        developer_user_id = os.getenv("DEVELOPER_USER_ID")
+
+        if not access_token or not developer_user_id:
+            print("[WARNING] 環境變數未設定，跳過開發者通知")
+            return
+
+        # ✅ 延遲載入 LINE SDK（避免 import error 導致部署失敗）
+        from linebot.v3 import Configuration
+        from linebot.v3.messaging import MessagingApi, ApiClient, TextMessage
+
         configuration = Configuration(access_token=access_token)
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.push_message(
                 to=developer_user_id,
-                messages=[TextMessage(text=message)]
+                messages=[TextMessage(text=f"🛑 使用者 {user_id or 'unknown'} 查詢「{keyword}」，但查無解夢資料")]
             )
-        print(f"[PUSH] 已推送通知給開發者：{message}")
+        print(f"[PUSH] 已推送通知給開發者")
+
     except Exception as e:
-        print(f"[ERROR] 發送開發者推播時出錯：{e}")
+        print(f"[SKIPPED] 推播功能錯誤已略過：{e}")
 
 def process_dream(keyword, user_id=None):
     dream_text = get_dream_interpretation(keyword)
@@ -58,10 +59,8 @@ def process_dream(keyword, user_id=None):
     print(f"🧠 解夢結果：{dream_text}")
 
     if dream_text.startswith("⚠️"):
-        # ⛔ 無解夢資料：寫入 log 並推播開發者
         log_missing_keyword(keyword, user_id)
         notify_developer(keyword, user_id)
-
         emotion = "未知"
         card = {
             "title": "無法對應情緒",
@@ -69,14 +68,11 @@ def process_dream(keyword, user_id=None):
             "image": random.choice(ALL_CARD_IMAGES)
         }
     else:
-        # ✅ 正常解析情緒並抽卡
         emotion = map_emotion(dream_text)
         card = draw_card(emotion)
 
-    # ✅ 儲存記錄
     save_result(keyword, dream_text, emotion, card)
 
-    # ✅ 組合回應文字
     text = f"""🔍 解夢關鍵字：{keyword}
 🧠 解夢結果：
 {dream_text}
@@ -92,7 +88,7 @@ def process_dream(keyword, user_id=None):
 
 # ✅ 本機測試區塊
 if __name__ == "__main__":
-    test_keyword = "火鍋寶寶外星人"  # 輸入不存在的關鍵字來觸發 missing log
+    test_keyword = "火鍋寶寶外星人"
     result = process_dream(test_keyword, user_id="LocalTest")
     print("\n====== 測試結果 ======\n")
     print(result["text"])
