@@ -12,7 +12,7 @@ load_dotenv()
 
 # ✅ 備用卡牌圖片清單
 ALL_CARD_IMAGES = [
-    "A1.jpg", "A2.jpg", "A3.jpg", "B1.jpg", "B2.jpg", "B3.jpg", "C1.jpg", "C2.jpg", "c3.jpg", "D1.jpg", "D2.jpg", "D3.jpg",
+    "A1.jpg", "A2.jpg", "A3.jpg", "B1.jpg", "B2.jpg", "B3.jpg", "C1.jpg", "C2.jpg", "C3.jpg", "D1.jpg", "D2.jpg", "D3.jpg",
     "E1.jpg", "E2.jpg", "E3.jpg", "F1.jpg", "F2.jpg", "F3.jpg", "G1.jpg", "G2.jpg", "G3.jpg", "H1.jpg", "H2.jpg", "H3.jpg",
     "I1.jpg", "I2.jpg", "I3.jpg", "J1.jpg", "J2.jpg", "J3.jpg", "K1.jpg", "K2.jpg", "K3.jpg", "L1.jpg", "L2.jpg", "L3.jpg",
     "M1.jpg", "M2.jpg", "M3.jpg", "N1.jpg", "N2.jpg", "N3.jpg", "O1.jpg", "O2.jpg", "O3.jpg", "P1.jpg", "P2.jpg", "P3.jpg"
