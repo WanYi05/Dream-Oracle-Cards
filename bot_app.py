@@ -98,17 +98,23 @@ def handle_message(event):
 
         # ✅ 查無資料 → 寫入 log 並推播給開發者
         if result["text"].startswith("🔍") and "⚠️ 尚未支援此夢境" in result["text"]:
-            # ➕ 寫入 log
-            with open("missing_keywords.log", "a", encoding="utf-8") as f:
-                f.write(f"{datetime.now()} - 未支援夢境關鍵字：{user_input}\n")
+            # ➕ 寫入 log（加上錯誤處理）
+            try:
+                with open("missing_keywords.log", "a", encoding="utf-8") as f:
+                    f.write(f"{datetime.now()} - 未支援夢境關鍵字：{user_input}\n")
+            except Exception as e:
+                print(f"[WARNING] 無法寫入 missing_keywords.log：{e}")
 
             # ➕ 推播給開發者
-            with ApiClient(configuration) as api_client:
-                line_bot_api = MessagingApi(api_client)
-                line_bot_api.push_message(
-                    to=DEVELOPER_USER_ID,
-                    messages=[TextMessage(text=f"🚨 有人查了未支援的夢境關鍵字：{user_input}")]
-                )
+            try:
+                with ApiClient(configuration) as api_client:
+                    line_bot_api = MessagingApi(api_client)
+                    line_bot_api.push_message(
+                        to=DEVELOPER_USER_ID,
+                        messages=[TextMessage(text=f"🚨 有人查了未支援的夢境關鍵字：{user_input}")]
+                    )
+            except Exception as e:
+                print(f"[WARNING] 無法推播通知開發者：{e}")
 
             # 回覆使用者（不附圖片）
             messages = [
@@ -126,15 +132,18 @@ def handle_message(event):
                 )
             ]
 
-    # ✅ 統一回覆訊息
-    with ApiClient(configuration) as api_client:
-        line_bot_api = MessagingApi(api_client)
-        line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=messages
+    # ✅ 統一回覆訊息（加入 try，避免 webhook fail）
+    try:
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=messages
+                )
             )
-        )
+    except Exception as e:
+        print(f"[ERROR] 回傳訊息失敗：{e}")
 
 # ✅ 本地測試啟動
 if __name__ == "__main__":
