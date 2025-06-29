@@ -96,9 +96,9 @@ def handle_message(event):
         reply_text = result["text"]
         image_filename = result["image"]
 
-        # ✅ 查無資料 → 寫入 log 並推播給開發者
+        # ✅ 查無資料 → 寫入 log、推播、回覆圖片
         if result["text"].startswith("🔍") and "⚠️ 尚未支援此夢境" in result["text"]:
-            # ➕ 寫入 log（加上錯誤處理）
+            # ➕ 寫入 log（加上 try 防止寫入錯）
             try:
                 with open("missing_keywords.log", "a", encoding="utf-8") as f:
                     f.write(f"{datetime.now()} - 未支援夢境關鍵字：{user_input}\n")
@@ -116,10 +116,15 @@ def handle_message(event):
             except Exception as e:
                 print(f"[WARNING] 無法推播通知開發者：{e}")
 
-            # 回覆使用者（不附圖片）
+            # ➕ 回覆文字 + 隨機卡牌圖片
+            image_url = f"https://dream-oracle.onrender.com/Cards/{image_filename}"
             messages = [
                 TextMessage(text=reply_text),
-                TextMessage(text="我們會儘快補上這個夢境的解析，感謝你的提醒 🙇")
+                TextMessage(text="我們會儘快補上這個夢境的解析，感謝你的提醒 🙇"),
+                ImageMessage(
+                    original_content_url=image_url,
+                    preview_image_url=image_url
+                )
             ]
         else:
             # ✅ 正常情況 → 傳文字 + 圖片
@@ -132,7 +137,7 @@ def handle_message(event):
                 )
             ]
 
-    # ✅ 統一回覆訊息（加入 try，避免 webhook fail）
+    # ✅ 統一回覆訊息（加入 try 避免 webhook 崩潰）
     try:
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
