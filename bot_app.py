@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 import json
 
-from dream_core import process_dream  # ✅ 解夢邏輯核心
+from dream_core import process_dream
 
 # ✅ 載入 .env 檔案
 load_dotenv(dotenv_path=Path(".env"))
@@ -23,27 +23,26 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 DEVELOPER_USER_ID = os.getenv("DEVELOPER_USER_ID")
 
-# ✅ 基本錯誤檢查
+# ✅ 檢查必要環境變數
 if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET]):
-    raise EnvironmentError("❌ 環境變數未正確設定，請檢查 .env 中的 LINE_CHANNEL_ACCESS_TOKEN / LINE_CHANNEL_SECRET")
+    raise EnvironmentError("❌ 請確認 .env 是否正確設定 LINE_CHANNEL_ACCESS_TOKEN / LINE_CHANNEL_SECRET")
 
+# ✅ 初始化 LINE Bot 與 Flask App
 configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
-
-# ✅ 初始化 Flask App
 app = Flask(__name__)
 
-# ✅ 公開圖片路由：讓 /Cards/<filename> 可被外部讀取
+# ✅ 靜態圖片目錄：/Cards/xxx.jpg
 @app.route("/Cards/<path:filename>")
 def serve_card_image(filename):
     return send_from_directory("Cards", filename)
 
-# ✅ 首頁測試（避免 404）
+# ✅ 首頁健康檢查
 @app.route("/", methods=["GET"])
 def index():
     return "🌙 Dream Oracle LINE BOT 正在運行中！"
 
-# ✅ LINE Webhook 接收點
+# ✅ Webhook 路由
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers.get("X-Line-Signature", "")
@@ -64,7 +63,7 @@ def callback():
 
     return "OK"
 
-# ✅ 處理文字訊息事件
+# ✅ 處理 LINE 訊息
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
@@ -72,13 +71,11 @@ def handle_message(event):
     print("👤 使用者 ID：", user_id)
 
     try:
-        # ✅ 新增資料指令：「新增 關鍵字 網址」
         if user_input.startswith("新增 "):
             parts = user_input.split()
             if len(parts) == 3 and parts[2].startswith("http"):
                 keyword = parts[1]
                 url = parts[2]
-
                 path = "dream_links.json"
                 try:
                     with open(path, "r", encoding="utf-8") as f:
@@ -97,38 +94,29 @@ def handle_message(event):
                 messages = [TextMessage(text=reply_text)]
 
         elif user_input.lower() in ["q", "quit", "exit"]:
-            reply_text = "👋 感謝使用 Dream Oracle，再會～"
-            messages = [TextMessage(text=reply_text)]
+            messages = [TextMessage(text="👋 感謝使用 Dream Oracle，再會～")]
 
         else:
             result = process_dream(user_input, user_id=user_id)
             reply_text = result.get("text", "⚠️ 系統錯誤，請稍後再試")
             image_filename = result.get("image")
 
-            if not image_filename:
-                image_url = "https://dream-oracle.onrender.com/Cards/default.jpg"
-            else:
+            messages = [TextMessage(text=reply_text)]
+
+            if image_filename:  # ✅ 若有圖片才加上圖片訊息
                 image_url = f"https://dream-oracle.onrender.com/Cards/{image_filename}"
 
-            if "⚠️ 尚未支援此夢境" in reply_text:
-                messages = [
-                    TextMessage(text=reply_text),
-                    TextMessage(text="我們會儘快補上這個夢境的解析，感謝你的提醒 🙇"),
-                    ImageMessage(
-                        original_content_url=image_url,
-                        preview_image_url=image_url
-                    )
-                ]
-            else:
-                messages = [
-                    TextMessage(text=reply_text),
-                    ImageMessage(
-                        original_content_url=image_url,
-                        preview_image_url=image_url
-                    )
-                ]
+                if "⚠️ 尚未支援此夢境" in reply_text:
+                    messages.append(TextMessage(text="我們會儘快補上這個夢境的解析，感謝你的提醒 🙇"))
 
-        # ✅ 安全回覆訊息（避免 webhook 崩潰）
+                messages.append(
+                    ImageMessage(
+                        original_content_url=image_url,
+                        preview_image_url=image_url
+                    )
+                )
+
+        # ✅ 回覆訊息
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message_with_http_info(
@@ -141,6 +129,6 @@ def handle_message(event):
     except Exception as e:
         print(f"[ERROR] 回傳訊息失敗：{e}")
 
-# ✅ 本機測試入口
+# ✅ 開發測試本地啟動
 if __name__ == "__main__":
     app.run(port=5001)
