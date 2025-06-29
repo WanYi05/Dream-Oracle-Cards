@@ -2,5 +2,5 @@
 .venv/
 env/
 
-# 環境變數
+# 環git rm --cached .env境變數
 .env
