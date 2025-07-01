@@ -129,6 +129,18 @@ def handle_message(event):
     except Exception as e:
         print(f"[ERROR] 回傳訊息失敗：{e}")
 
+@app.route("/get-missing-log", methods=["GET"])
+def get_missing_log():
+    log_path = "missing_keywords.log"
+
+    if not os.path.exists(log_path):
+        return "⚠️ Log 檔案不存在", 404
+
+    with open(log_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+
 # ✅ 開發測試本地啟動
 if __name__ == "__main__":
     app.run(port=5001)
