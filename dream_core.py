@@ -23,13 +23,14 @@ ALL_CARD_IMAGES = [
 ]
 
 def log_missing_keyword(keyword, user_id=None):
-    log_dir = "output"
-    os.makedirs(log_dir, exist_ok=True)
-    log_path = os.path.join(log_dir, "missing_keywords.log")
+    log_path = "missing_keywords.log"  # 🔄 修改：不再放在 /output
     log_line = f"{datetime.now():%Y-%m-%d %H:%M:%S} | {user_id or 'anonymous'} | {keyword}\n"
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(log_line)
-    print(f"[MISSING LOG] {log_line.strip()}")
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(log_line)
+        print(f"[MISSING LOG] {log_line.strip()}")
+    except Exception as e:
+        print(f"[ERROR] 寫入 log 檔失敗：{e}")
 
 def notify_developer(keyword, user_id=None):
     try:
