@@ -131,12 +131,12 @@ def handle_message(event):
 
 @app.route("/get-missing-log", methods=["GET"])
 def get_missing_log():
-    log_path = "missing_keywords.log"
+    log_path = Path(__file__).parent / "missing_keywords.log"
 
-    if not os.path.exists(log_path):
+    if not log_path.exists():
         return "⚠️ Log 檔案不存在", 404
 
-    with open(log_path, "r", encoding="utf-8") as f:
+    with log_path.open("r", encoding="utf-8") as f:
         content = f.read()
 
     return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
