@@ -8,6 +8,7 @@ from dream_parser import get_dream_interpretation
 from emotion_mapper import map_emotion
 from oracle_engine import draw_card
 from utils import save_result
+from pathlib import Path
 
 # ✅ 載入 .env 環境變數
 load_dotenv()
@@ -23,7 +24,7 @@ ALL_CARD_IMAGES = [
 ]
 
 def log_missing_keyword(keyword, user_id=None):
-    log_path = "missing_keywords.log"  # 🔄 修改：不再放在 /output
+    log_path = Path(__file__).parent / "missing_keywords.log"
     log_line = f"{datetime.now():%Y-%m-%d %H:%M:%S} | {user_id or 'anonymous'} | {keyword}\n"
     try:
         with open(log_path, "a", encoding="utf-8") as f:
