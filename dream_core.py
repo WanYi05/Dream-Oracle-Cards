@@ -61,8 +61,8 @@ def notify_developer(keyword, user_id=None):
 def process_dream(keyword, user_id=None):
     dream_text = get_dream_interpretation(keyword)
 
-    print(f"📥 使用者輸入關鍵字：{keyword}")
-    print(f"🧠 解夢結果：{dream_text}")
+    # print(f"📥 使用者輸入關鍵字：{keyword}")
+    # print(f"🧠 解夢結果：{dream_text}")
 
     if dream_text.startswith("⚠️"):
         log_missing_keyword(keyword, user_id)
@@ -100,10 +100,10 @@ def process_dream(keyword, user_id=None):
         "image": card["image"]
     }
 
-# ✅ 本機測試入口（可本地執行檢查）
-if __name__ == "__main__":
-    test_keyword = "火鍋寶寶外星人"
-    result = process_dream(test_keyword, user_id="LocalTest")
-    print("\n====== 測試結果 ======\n")
-    print(result["text"])
-    print(f"\n🖼️ 圖片檔名：{result['image']}")
+# # ✅ 本機測試入口（可本地執行檢查）
+# if __name__ == "__main__":
+#     test_keyword = "火鍋寶寶外星人"
+#     result = process_dream(test_keyword, user_id="LocalTest")
+#     print("\n====== 測試結果 ======\n")
+#     print(result["text"])
+#     print(f"\n🖼️ 圖片檔名：{result['image']}")

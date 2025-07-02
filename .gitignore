@@ -1,6 +1,13 @@
-# 虛擬環境
+# 虛擬環境(虛擬環境資料夾，不應被版本控制)
 .venv/
 env/
 
-# 環git rm --cached .env境變數
+# 環境變數 (如 LINE token、秘密金鑰等)
 .env
+
+# 執行時產生的 log 檔案(所有 log 紀錄檔（如 missing_keywords.log）)
+*.log
+
+# Python cache (Python 編譯快取檔案)
+__pycache__/
+*.pyc
