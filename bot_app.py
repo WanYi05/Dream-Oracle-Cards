@@ -99,6 +99,10 @@ def handle_message(event):
         else:
             result = process_dream(user_input, user_id=user_id)
             reply_text = result.get("text", "⚠️ 系統錯誤，請稍後再試")
+
+            # ✅ 新增你想要附加的結尾文字
+            # reply_text += "\n\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"
+
             image_filename = result.get("image")
 
             messages = [TextMessage(text=reply_text)]
@@ -115,6 +119,10 @@ def handle_message(event):
                         preview_image_url=image_url
                     )
                 )
+                
+                # ✅ 圖片之後再加一段話
+                messages.append(TextMessage(text="請再輸入下一個夢境關鍵字吧，我們會為你持續指引。\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"
+))
 
         # ✅ 回覆訊息
         with ApiClient(configuration) as api_client:
