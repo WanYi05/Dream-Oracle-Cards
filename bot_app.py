@@ -106,7 +106,7 @@ def handle_message(event):
             # ✅ Gemini 補充夢境說明
             try:
                 gemini_model = genai.GenerativeModel(
-                    model_name='models/gemini-pro',
+                    model_name='gemini-pro',
                     safety_settings={
                         "HARASSMENT": "block_none",
                         "HATE": "block_none",
