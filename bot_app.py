@@ -16,7 +16,7 @@ import json
 # ✅ 載入 .env 檔案
 load_dotenv(dotenv_path=Path(".env"))
 
-# ✅ 引入 Gemini SDK 並初始化
+# ✅ 引入 Gemini SDK 並設定 API KEY
 import google.generativeai as genai
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -105,16 +105,32 @@ def handle_message(event):
 
             # ✅ Gemini 補充夢境說明
             try:
-                gemini_model = genai.GenerativeModel('models/gemini-pro')
+                gemini_model = genai.GenerativeModel(
+                    model_name='models/gemini-pro',
+                    safety_settings={
+                        "HARASSMENT": "block_none",
+                        "HATE": "block_none",
+                        "SEXUAL": "block_none",
+                        "DANGEROUS": "block_none"
+                    }
+                )
+
                 gemini_response = gemini_model.generate_content(
                     f"使用溫柔、療癒的語氣，補充夢境「{user_input}」的心理象徵意義，限制在 3 行內。"
                 )
-                supplement = gemini_response.text
-                print("🧠 Gemini 補充內容：", supplement)
-                reply_text += f"\n\n💡 Gemini 補充：\n{supplement}"
+
+                supplement = gemini_response.text.strip()
+
+                if supplement:
+                    print("🧐 Gemini 補充內容：", supplement)
+                    reply_text += f"\n\n💡 Gemini 補充：\n{supplement}"
+                else:
+                    print("⚠️ Gemini 沒有回傳內容")
+
             except Exception as ge:
                 print(f"[Gemini Error] {ge}")
 
+            # ✅ 產生回覆訊息
             image_filename = result.get("image")
             messages = [TextMessage(text=reply_text)]
 
@@ -122,7 +138,7 @@ def handle_message(event):
                 image_url = f"https://dream-oracle.onrender.com/Cards/{image_filename}"
 
                 if "⚠️ 尚未支援此夢境" in reply_text:
-                    messages.append(TextMessage(text="我們會儘快補上這個夢境的解析，感謝你的提醒 🙇"))
+                    messages.append(TextMessage(text="我們會償快補上這個夢境的解析，感謝你的提醒 🙇"))
 
                 messages.append(
                     ImageMessage(
@@ -131,7 +147,7 @@ def handle_message(event):
                     )
                 )
                 messages.append(TextMessage(
-                    text="請再輸入下一個夢境關鍵字吧，我們會為你持續指引。\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"
+                    text="請再輸入下一個夢境關鍵字吧，我們會為你持續指導。\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"
                 ))
 
         # ✅ 回覆 LINE 使用者
