@@ -125,6 +125,7 @@ def process_dream(keyword, user_id=None):
             }
 
     save_result(keyword, dream_text, emotion, card)
+    save_to_sqlite(keyword, emotion, card, dream_text, user_id)  # <-- 加這行
 
     text = f"""
 🔍 解夢關鍵字：{keyword}
@@ -151,3 +152,47 @@ def process_dream(keyword, user_id=None):
 #     print("\n====== 測試結果 ======\n")
 #     print(result["text"])
 #     print(f"\n🖼️ 圖片檔名：{result['image']}")
+
+import sqlite3
+
+def save_to_sqlite(keyword, emotion, card, dream_text, user_id=None):
+    db_path = Path(__file__).parent / "dream_history.db"
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # 建立表格（如果尚未存在）
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS dream_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            user_id TEXT,
+            keyword TEXT,
+            dream_text TEXT,
+            emotion TEXT,
+            card_title TEXT,
+            card_message TEXT,
+            card_image TEXT
+        )
+    """)
+
+    # 插入資料
+    cursor.execute(
+        """
+        INSERT INTO dream_history (
+            timestamp, user_id, keyword, dream_text, emotion,
+            card_title, card_message, card_image
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        user_id or "anonymous",
+        keyword,
+        dream_text,
+        emotion,
+        card["title"],
+        card["message"],
+        card["image"]
+    ))
+
+    conn.commit()
+    conn.close()
