@@ -89,7 +89,13 @@ def get_dream_interpretation(keyword):
         model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = f"請根據以下夢境關鍵字提供一段簡短的夢境解析：'{keyword}'，語氣溫柔，有療癒感，限 80 字內"
         response = model.generate_content(prompt)
-        return response.text.strip()
+
+        # ✅ 加入判斷是否為空
+        if response.text and response.text.strip():
+            return response.text.strip()
+        else:
+            raise ValueError("Gemini 回傳空白內容")
+
     except Exception as e:
         print(f"[ERROR] Gemini API 錯誤：{e}")
         return "⚠️ 尚未支援此夢境，請稍後再試或由開發者補充資料"
