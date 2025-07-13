@@ -49,3 +49,15 @@ def get_all_logs():
     rows = cursor.fetchall()
     conn.close()
     return rows
+
+def upgrade_db_add_user_id():
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("ALTER TABLE dream_logs ADD COLUMN user_id TEXT;")
+        conn.commit()
+        print("✅ 已成功新增 user_id 欄位")
+    except psycopg2.errors.DuplicateColumn:
+        print("⚠️ user_id 欄位已存在，略過")
+    finally:
+        conn.close()

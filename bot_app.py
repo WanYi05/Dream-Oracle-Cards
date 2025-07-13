@@ -1,4 +1,4 @@
-from flask import Flask, request, abort, send_from_directory, jsonify
+from flask import Flask, request, abort, send_from_directory
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
@@ -13,7 +13,7 @@ import psycopg2
 import os
 import traceback
 from dream_core import process_dream
-from database import write_to_postgres, init_db, get_all_logs  # ✅ 正確引入所有功能
+from database import write_to_postgres, init_db, get_all_logs, upgrade_db_add_user_id
 
 # === ✅ 初始化環境變數與 API 金鑰 ===
 load_dotenv(dotenv_path=Path(".env"))
@@ -31,8 +31,9 @@ app = Flask(__name__)
 configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-# === ✅ 啟動時建立資料表 ===
+# === ✅ 啟動時建立資料表與補欄位 ===
 init_db()
+upgrade_db_add_user_id()
 
 # === ✅ 卡牌圖片靜態路由 ===
 @app.route("/Cards/<path:filename>")
@@ -63,12 +64,10 @@ def callback():
     return "OK"
 
 # === ✅ 處理使用者文字訊息 ===
-
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
     user_id = event.source.user_id
-    user_message = event.message.text
     print("👤 使用者 ID：", user_id)
 
     try:
@@ -78,7 +77,6 @@ def handle_message(event):
             result = process_dream(user_input)
             print("[DEBUG] 處理結果：", result)
 
-            # 加入這行，將使用者輸入與情緒寫入資料庫
             write_to_postgres(user_id, user_input, result["emotion"])
 
             reply_text = (
@@ -98,7 +96,7 @@ def handle_message(event):
                     preview_image_url=image_url
                 ))
 
-            messages.append(TextMessage(text="請再輸入下一個夢境關鍵字吧，我們會為你持續指徑\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"))
+            messages.append(TextMessage(text="請再輸入下一個夢境關鍵字吧，我們會為你持續指導\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"))
 
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
@@ -113,8 +111,7 @@ def handle_message(event):
         traceback.print_exc()
         print(f"[ERROR] 回傳訊息失敗：{str(e)}")
 
-
-# === ✅ [查詢記錄] 顯示已寫入的夢境資料 ===
+# === ✅ 顯示更新記錄 ===
 @app.route("/logs", methods=["GET"])
 def view_logs():
     try:
@@ -196,17 +193,15 @@ def view_logs():
         traceback.print_exc()
         return f"❌ 查詢失敗：{str(e)}", 500
 
-
-# === ✅ [測試寫入] 手動觸發寫入一筆紀錄 ===
+# === ✅ 手動測試記錄 ===
 @app.route("/log/<keyword>/<emotion>")
 def log(keyword, emotion):
     try:
-        write_to_postgres(keyword, emotion)
+        write_to_postgres("TEST_USER", keyword, emotion)
         return "✅ 寫入成功"
     except Exception as e:
         traceback.print_exc()
         return f"❌ 寫入失敗：{str(e)}", 500
 
-# === ✅ 本地啟動（Render 上不會執行這段） ===
 if __name__ == "__main__":
     app.run(port=5001)
