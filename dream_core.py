@@ -32,17 +32,22 @@ ALL_CARD_IMAGES = [
 CARDS_DF = pd.read_csv(Path(__file__).parent / "emotion_cards_full.csv")
 
 def get_emotion_card(emotion: str):
+    """
+    從 emotion_cards_full.csv 中依情緒抽卡，
+    並確保 title、message、image 對應同一筆資料。
+    """
     emotion_clean = emotion.strip()
     if emotion_clean in CARDS_DF["emotion"].unique():
         matched = CARDS_DF[CARDS_DF["emotion"] == emotion_clean]
-        result = matched.sample().to_dict("records")[0]
+        result = matched.sample(1).iloc[0].to_dict()  # ✅ 隨機抽一整筆，保持對應一致
         return {
             "title": result["title"],
             "message": result["message"],
             "image": result.get("image", random.choice(ALL_CARD_IMAGES))
         }
     else:
-        result = CARDS_DF.sample().to_dict("records")[0]
+        # ⚠️ 無對應情緒時，才從全部中隨機抽一筆（可保持原邏輯）
+        result = CARDS_DF.sample(1).iloc[0].to_dict()
         return {
             "title": "無法對應情緒",
             "message": "✨ 目前僅支援特定情緒，這是隨機卡牌：\n\n☞ {}\n✨ {}".format(result["title"], result["message"]),
