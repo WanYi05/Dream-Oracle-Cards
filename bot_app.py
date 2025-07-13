@@ -110,6 +110,24 @@ def handle_message(event):
         traceback.print_exc()
         print(f"[ERROR] 回傳訊息失敗：{str(e).encode('utf-8', 'ignore').decode('utf-8')}")
 
+@app.route('/logs')
+def view_logs():
+
+    
+    conn = psycopg2.connect("postgresql://dream_oracle_db_user:9MF0Mey8KUQuVDuG0HjQyg4r0MjIfthR@dpg-d1pnvt2dbo4c73bom1og-a/dream_oracle_db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT keyword, emotion, timestamp FROM dream_logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+
+    # 把查詢結果變成 HTML 格式
+    html = "<h2>使用者輸入記錄</h2><ul>"
+    for row in rows:
+        html += f"<li>🌙 關鍵字: {row[0]} ｜情緒: {row[1]} ｜時間: {row[2]}</li>"
+    html += "</ul>"
+
+    return html
+
 # ✅ 本地開發使用
 if __name__ == "__main__":
     app.run(port=5001)
