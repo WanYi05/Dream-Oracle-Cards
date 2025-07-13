@@ -69,7 +69,7 @@ def handle_message(event):
 
             reply_text = (
                 f"🔍 解夢關鍵字：{user_input}\n"
-                f"💡 Gemini 補充：\n{result['gemini_text']}\n\n"
+                f"💡 Gemini 補充：\n{result['text']}\n\n"
                 f"🎭 情緒判定：{result['emotion']}\n"
                 f"🃏 命定卡牌：「{result['title']}」\n👉 {result['message']}"
             )
