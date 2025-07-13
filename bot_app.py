@@ -78,8 +78,8 @@ def handle_message(event):
             result = process_dream(user_input)
             print("[DEBUG] 處理結果：", result)
 
-            # ✅ ✅ ✅ 加入這行，將使用者輸入與情緒寫入資料庫
-            write_to_postgres(user_input, result["emotion"])
+            # 加入這行，將使用者輸入與情緒寫入資料庫
+            write_to_postgres(user_id, user_input, result["emotion"])
 
             reply_text = (
                 f"🔍 解夢關鍵字：{user_input}\n"
@@ -173,6 +173,7 @@ def view_logs():
             <table>
                 <thead>
                     <tr>
+                        <th>使用者ID</th>
                         <th>夢境關鍵字</th>
                         <th>情緒</th>
                         <th>記錄時間</th>
@@ -181,10 +182,11 @@ def view_logs():
                 <tbody>
             """
             for row in rows:
-                keyword = row[0]
-                emotion = row[1]
-                timestamp = row[2].strftime("%Y-%m-%d %H:%M:%S") if row[2] else "無時間"
-                html += f"<tr><td>{keyword}</td><td>{emotion}</td><td>{timestamp}</td></tr>"
+                user_id = row[0]
+                keyword = row[1]
+                emotion = row[2]
+                timestamp = row[3].strftime("%Y-%m-%d %H:%M:%S") if row[3] else "無時間"
+                html += f"<tr><td>{user_id}</td><td>{keyword}</td><td>{emotion}</td><td>{timestamp}</td></tr>"
             html += "</tbody></table>"
 
         html += "</body></html>"
