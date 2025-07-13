@@ -27,7 +27,7 @@ def write_to_postgres(user_id, keyword, emotion):
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
-    #台灣時間
+    # 台灣時間
     taiwan_time = datetime.now(timezone(timedelta(hours=8)))
 
     cursor.execute("""
