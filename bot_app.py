@@ -105,15 +105,7 @@ def handle_message(event):
 
             # ✅ Gemini 補充夢境說明
             try:
-                gemini_model = genai.GenerativeModel(
-                    model_name='gemini-pro',
-                    safety_settings={
-                        "HARASSMENT": "block_none",
-                        "HATE": "block_none",
-                        "SEXUAL": "block_none",
-                        "DANGEROUS": "block_none"
-                    }
-                )
+                gemini_model = genai.GenerativeModel("gemini-pro")
 
                 gemini_response = gemini_model.generate_content(
                     f"使用溫柔、療癒的語氣，補充夢境「{user_input}」的心理象徵意義，限制在 3 行內。"
