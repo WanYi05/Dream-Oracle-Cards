@@ -4,11 +4,12 @@ import random
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+from pathlib import Path
+import pandas as pd
+
 from dream_parser import get_dream_interpretation
 from emotion_mapper import map_emotion
-from oracle_engine import draw_card
 from utils import save_result
-from pathlib import Path
 
 # ✅ 載入 .env 環境變數
 load_dotenv()
@@ -22,6 +23,30 @@ ALL_CARD_IMAGES = [
     "M1.jpg", "M2.jpg", "M3.jpg", "N1.jpg", "N2.jpg", "N3.jpg", "O1.jpg", "O2.jpg", "O3.jpg",
     "P1.jpg", "P2.jpg", "P3.jpg"
 ]
+
+# ✅ 載入完整卡牌資料（含情緒、標題、訊息、圖片）
+CARDS_DF = pd.read_csv(Path(__file__).parent / "emotion_cards_full.csv")
+
+def get_emotion_card(emotion: str):
+    """
+    從 emotion_cards_full.csv 中依情緒抽卡，若無對應則隨機抽一張。
+    """
+    emotion_clean = emotion.strip()
+    if emotion_clean in CARDS_DF["emotion"].unique():
+        matched = CARDS_DF[CARDS_DF["emotion"] == emotion_clean]
+        result = matched.sample().to_dict("records")[0]
+        return {
+            "title": result["title"],
+            "message": result["message"],
+            "image": result.get("image", random.choice(ALL_CARD_IMAGES))
+        }
+    else:
+        result = CARDS_DF.sample().to_dict("records")[0]
+        return {
+            "title": "無法對應情緒",
+            "message": "✨ 目前僅支援特定情緒，這是隨機卡牌：\n\n☞ {}\n✨ {}".format(result["title"], result["message"]),
+            "image": result.get("image", random.choice(ALL_CARD_IMAGES))
+        }
 
 def log_missing_keyword(keyword, user_id=None):
     log_path = Path(__file__).parent / "missing_keywords.log"
@@ -42,7 +67,8 @@ def notify_developer(keyword, user_id=None):
             print("[WARNING] 環境變數未設定，跳過開發者通知")
             return
 
-        from linebot.v3 import Configuration
+        # from linebot.v3 import Configuration
+        from linebot.v3.messaging.rest import Configuration
         from linebot.v3.messaging import MessagingApi, ApiClient, TextMessage
 
         configuration = Configuration(access_token=access_token)
@@ -61,44 +87,40 @@ def notify_developer(keyword, user_id=None):
 def process_dream(keyword, user_id=None):
     dream_text = get_dream_interpretation(keyword)
 
-    # print(f"📥 使用者輸入關鍵字：{keyword}")
-    # print(f"🧠 解夢結果：{dream_text}")
-
     if dream_text.startswith("⚠️"):
         log_missing_keyword(keyword, user_id)
         notify_developer(keyword, user_id)
         emotion = "未知"
-        card = {
-            "title": "無法對應情緒",
-            "message": "👉 目前僅支援特定情緒，將為你抽一張隨機命定卡。",
-            "image": random.choice(ALL_CARD_IMAGES)
-        }
+        card = get_emotion_card(emotion)
     else:
         emotion = map_emotion(dream_text)
-        card = draw_card(emotion)
+        card = get_emotion_card(emotion)
 
-        # 🛡️ 防呆：確保卡牌含有完整欄位
         if not all(k in card for k in ["title", "message", "image"]):
             card = {
                 "title": "資料錯誤",
-                "message": "⚠️ 系統未能正確取得卡牌內容。",
+                "message": "⚠️ 系統未能正確取得卡片內容。",
                 "image": random.choice(ALL_CARD_IMAGES)
             }
 
     save_result(keyword, dream_text, emotion, card)
 
-    text = f"""🔍 解夢關鍵字：{keyword}
+    text = f"""\U0001f50d 解夢關鍵字：{keyword}
 🧠 解夢結果：
 {dream_text}
 
 🎭 情緒判定：{emotion}
-🃏 命定卡牌：「{card['title']}」
+🃏 命定卡片：「{card['title']}」
 👉 {card['message']}"""
 
     return {
         "text": text,
-        "image": card["image"]
+        "image": card["image"],
+        "emotion": emotion,               # ✅ 加上情緒
+        "title": card["title"],           # ✅ 加上卡牌標題
+        "message": card["message"]        # ✅ 加上卡牌訊息
     }
+
 
 # # ✅ 本機測試入口（可本地執行檢查）
 # if __name__ == "__main__":
