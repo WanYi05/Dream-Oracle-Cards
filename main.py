@@ -22,3 +22,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+from database import write_to_postgres
+
+# 呼叫範例
+write_to_postgres("夢見火", "恐懼")

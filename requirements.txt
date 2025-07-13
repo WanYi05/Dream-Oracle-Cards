@@ -21,3 +21,5 @@ google-generativeai==0.5.2
 
 # 若用 render.com 或 Heroku 部署，建議加上這個（強制使用 UTF-8）
 charset-normalizer==3.3.2
+
+psycopg2-binary>=2.9
