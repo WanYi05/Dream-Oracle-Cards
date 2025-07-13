@@ -1,4 +1,4 @@
-from flask import Flask, request, abort, send_from_directory
+from flask import Flask, request, abort, send_from_directory, jsonify
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
@@ -8,39 +8,40 @@ from linebot.v3.messaging import (
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from dotenv import load_dotenv
 from pathlib import Path
-from dream_core import process_dream
-import os
 import google.generativeai as genai
+import psycopg2
+import os
+import traceback
+from dream_core import process_dream
+from database import write_to_postgres  # ⬅️ 建議你把寫入資料庫的邏輯模組化
 
-# ✅ 載入 .env 環境變數
+# === ✅ 初始化環境變數與 API 金鑰 ===
 load_dotenv(dotenv_path=Path(".env"))
 
-# ✅ 設定 Gemini API 金鑰
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-# ✅ 讀取 LINE 機密資訊
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+DATABASE_URL = os.getenv("DATABASE_URL")  # ✅ 建議放到 .env 中而非寫死在程式碼裡
 
-if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET]):
-    raise EnvironmentError("❌ 請確認 .env 是否正確設定 LINE_CHANNEL_ACCESS_TOKEN / LINE_CHANNEL_SECRET")
+if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, DATABASE_URL]):
+    raise EnvironmentError("❌ 請確認 .env 中設定了必要的變數")
 
-# ✅ 建立 Flask 應用與 LINE Handler
+# === ✅ 初始化 Flask 與 LINE Webhook Handler ===
+app = Flask(__name__)
 configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
-app = Flask(__name__)
 
-# ✅ 卡牌圖片靜態路由
+# === ✅ 卡牌圖片靜態路由 ===
 @app.route("/Cards/<path:filename>")
 def serve_card_image(filename):
     return send_from_directory("Cards", filename)
 
-# ✅ 健康檢查
+# === ✅ 健康檢查路由 ===
 @app.route("/", methods=["GET"])
 def index():
     return "🌙 Dream Oracle LINE BOT 正在運行中！"
 
-# ✅ LINE Webhook 接收端點
+# === ✅ LINE Webhook 接收端點 ===
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers.get("X-Line-Signature", "")
@@ -52,14 +53,13 @@ def callback():
         app.logger.warning("⚠️ Invalid signature.")
         abort(400)
     except Exception as e:
-        import traceback
         traceback.print_exc()
-        app.logger.error(f"🔥 其他錯誤：{str(e).encode('utf-8', 'ignore').decode('utf-8')}")
+        app.logger.error(f"🔥 其他錯誤：{str(e)}")
         abort(500)
 
     return "OK"
 
-# ✅ 使用者訊息處理鄉理
+# === ✅ 處理使用者文字訊息 ===
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
@@ -70,7 +70,6 @@ def handle_message(event):
         if user_input.lower() in ["q", "quit", "exit"]:
             messages = [TextMessage(text="👋 感謝使用 Dream Oracle，再會～")]
         else:
-            # ✅ 呼叫核心鄉理分析夢境
             result = process_dream(user_input)
             print("[DEBUG] 處理結果：", result)
 
@@ -82,10 +81,7 @@ def handle_message(event):
                 f"👉 {result['message']}"
             )
 
-            messages = []
-            max_length = 4900
-            for i in range(0, len(reply_text), max_length):
-                messages.append(TextMessage(text=reply_text[i:i+max_length]))
+            messages = [TextMessage(text=reply_text[i:i + 4900]) for i in range(0, len(reply_text), 4900)]
 
             if result.get("image"):
                 image_url = f"https://dream-oracle.onrender.com/Cards/{result['image']}"
@@ -106,28 +102,39 @@ def handle_message(event):
             )
 
     except Exception as e:
-        import traceback
         traceback.print_exc()
-        print(f"[ERROR] 回傳訊息失敗：{str(e).encode('utf-8', 'ignore').decode('utf-8')}")
+        print(f"[ERROR] 回傳訊息失敗：{str(e)}")
 
-@app.route('/logs')
+# === ✅ [查詢記錄] 顯示已寫入的夢境資料 ===
+@app.route("/logs", methods=["GET"])
 def view_logs():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("SELECT keyword, emotion, timestamp FROM dream_logs ORDER BY timestamp DESC")
+        rows = cursor.fetchall()
+        conn.close()
 
-    
-    conn = psycopg2.connect("postgresql://dream_oracle_db_user:9MF0Mey8KUQuVDuG0HjQyg4r0MjIfthR@dpg-d1pnvt2dbo4c73bom1og-a/dream_oracle_db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT keyword, emotion, timestamp FROM dream_logs ORDER BY timestamp DESC")
-    rows = cursor.fetchall()
-    conn.close()
+        html = "<h2>使用者輸入記錄</h2><ul>"
+        for row in rows:
+            html += f"<li>🌙 關鍵字: {row[0]} ｜情緒: {row[1]} ｜時間: {row[2]}</li>"
+        html += "</ul>"
+        return html
 
-    # 把查詢結果變成 HTML 格式
-    html = "<h2>使用者輸入記錄</h2><ul>"
-    for row in rows:
-        html += f"<li>🌙 關鍵字: {row[0]} ｜情緒: {row[1]} ｜時間: {row[2]}</li>"
-    html += "</ul>"
+    except Exception as e:
+        traceback.print_exc()
+        return f"❌ 查詢失敗：{str(e)}", 500
 
-    return html
+# === ✅ [測試寫入] 手動觸發寫入一筆紀錄 ===
+@app.route("/log/<keyword>/<emotion>")
+def log(keyword, emotion):
+    try:
+        write_to_postgres(keyword, emotion)
+        return "✅ 寫入成功"
+    except Exception as e:
+        traceback.print_exc()
+        return f"❌ 寫入失敗：{str(e)}", 500
 
-# ✅ 本地開發使用
+# === ✅ 本地啟動（Render 上不會執行這段） ===
 if __name__ == "__main__":
     app.run(port=5001)
