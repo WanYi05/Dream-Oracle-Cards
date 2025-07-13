@@ -13,7 +13,7 @@ import psycopg2
 import os
 import traceback
 from dream_core import process_dream
-from database import write_to_postgres  # ⬅️ 建議你把寫入資料庫的邏輯模組化
+from database import write_to_postgres, init_db, get_all_logs  # ✅ 正確引入所有功能
 
 # === ✅ 初始化環境變數與 API 金鑰 ===
 load_dotenv(dotenv_path=Path(".env"))
@@ -21,7 +21,7 @@ load_dotenv(dotenv_path=Path(".env"))
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
-DATABASE_URL = os.getenv("DATABASE_URL")  # ✅ 建議放到 .env 中而非寫死在程式碼裡
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, DATABASE_URL]):
     raise EnvironmentError("❌ 請確認 .env 中設定了必要的變數")
@@ -30,6 +30,9 @@ if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, DATABASE_URL]):
 app = Flask(__name__)
 configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
+
+# === ✅ 啟動時建立資料表 ===
+init_db()
 
 # === ✅ 卡牌圖片靜態路由 ===
 @app.route("/Cards/<path:filename>")
@@ -109,18 +112,12 @@ def handle_message(event):
 @app.route("/logs", methods=["GET"])
 def view_logs():
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-        cursor.execute("SELECT keyword, emotion, timestamp FROM dream_logs ORDER BY timestamp DESC")
-        rows = cursor.fetchall()
-        conn.close()
-
+        rows = get_all_logs()
         html = "<h2>使用者輸入記錄</h2><ul>"
         for row in rows:
             html += f"<li>🌙 關鍵字: {row[0]} ｜情緒: {row[1]} ｜時間: {row[2]}</li>"
         html += "</ul>"
         return html
-
     except Exception as e:
         traceback.print_exc()
         return f"❌ 查詢失敗：{str(e)}", 500

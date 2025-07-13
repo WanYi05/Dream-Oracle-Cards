@@ -6,7 +6,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-def write_to_postgres(keyword, emotion):
+def init_db():
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
     cursor.execute('''
@@ -17,6 +17,20 @@ def write_to_postgres(keyword, emotion):
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    conn.commit()
+    conn.close()
+
+def write_to_postgres(keyword, emotion):
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
     cursor.execute("INSERT INTO dream_logs (keyword, emotion) VALUES (%s, %s)", (keyword, emotion))
     conn.commit()
     conn.close()
+
+def get_all_logs():
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute("SELECT keyword, emotion, timestamp FROM dream_logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
