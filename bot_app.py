@@ -9,40 +9,47 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from dotenv import load_dotenv
+from dream_core import process_dream
 from datetime import datetime
 from pathlib import Path
 import os
 import json
 
-from dream_core import process_dream
 
-# ✅ 載入 .env 檔案
+# 載入 .env 檔案
 load_dotenv(dotenv_path=Path(".env"))
 
+# 先 import gemini SDK
+import google.generativeai as genai
+
+# 載入環境變數
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 DEVELOPER_USER_ID = os.getenv("DEVELOPER_USER_ID")
 
-# ✅ 檢查必要環境變數
+# 設定 Gemini API 金鑰
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# 檢查必要環境變數
 if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET]):
     raise EnvironmentError("❌ 請確認 .env 是否正確設定 LINE_CHANNEL_ACCESS_TOKEN / LINE_CHANNEL_SECRET")
 
-# ✅ 初始化 LINE Bot 與 Flask App
+# 初始化 LINE Bot 與 Flask App
 configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 app = Flask(__name__)
 
-# ✅ 靜態圖片目錄：/Cards/xxx.jpg
+# 靜態圖片目錄：/Cards/xxx.jpg
 @app.route("/Cards/<path:filename>")
 def serve_card_image(filename):
     return send_from_directory("Cards", filename)
 
-# ✅ 首頁健康檢查
+# 首頁健康檢查
 @app.route("/", methods=["GET"])
 def index():
     return "🌙 Dream Oracle LINE BOT 正在運行中！"
 
-# ✅ Webhook 路由
+# Webhook 路由
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers.get("X-Line-Signature", "")
@@ -63,7 +70,7 @@ def callback():
 
     return "OK"
 
-# ✅ 處理 LINE 訊息
+# 處理 LINE 訊息
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
@@ -87,7 +94,7 @@ def handle_message(event):
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
 
-                reply_text = f"✅ 已成功新增：{keyword}\n🔗 {url}"
+                reply_text = f" 已成功新增：{keyword}\n🔗 {url}"
                 messages = [TextMessage(text=reply_text)]
             else:
                 reply_text = "⚠️ 請使用正確格式：\n新增 關鍵字 網址\n範例：新增 蛇 https://www.golla.tw/..."
@@ -100,14 +107,28 @@ def handle_message(event):
             result = process_dream(user_input, user_id=user_id)
             reply_text = result.get("text", "⚠️ 系統錯誤，請稍後再試")
 
-            # ✅ 新增你想要附加的結尾文字
+            # ✅ ✨ Gemini 補充夢境說明
+            try:
+                gemini_model = genai.GenerativeModel('gemini-pro')
+                gemini_response = gemini_model.generate_content(
+                    f"使用溫柔、療癒的語氣，補充夢境「{user_input}」的心理象徵意義，限制在 3 行內。"
+                )
+                supplement = gemini_response.text
+                reply_text += f"\n\n💡 Gemini 補充：\n{supplement}"
+            except Exception as ge:
+                print(f"[Gemini Error] {ge}")
+
+            image_filename = result.get("image")
+            messages = [TextMessage(text=reply_text)]
+
+            # 新增你想要附加的結尾文字
             # reply_text += "\n\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"
 
             image_filename = result.get("image")
 
             messages = [TextMessage(text=reply_text)]
 
-            if image_filename:  # ✅ 若有圖片才加上圖片訊息
+            if image_filename:  # 若有圖片才加上圖片訊息
                 image_url = f"https://dream-oracle.onrender.com/Cards/{image_filename}"
 
                 if "⚠️ 尚未支援此夢境" in reply_text:
@@ -120,11 +141,11 @@ def handle_message(event):
                     )
                 )
                 
-                # ✅ 圖片之後再加一段話
+                # 圖片之後再加一段話
                 messages.append(TextMessage(text="請再輸入下一個夢境關鍵字吧，我們會為你持續指引。\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"
 ))
 
-        # ✅ 回覆訊息
+        # 回覆訊息
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message_with_http_info(
@@ -149,6 +170,6 @@ def get_missing_log():
 
     return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
-# ✅ 開發測試本地啟動
+# 開發測試本地啟動
 if __name__ == "__main__":
     app.run(port=5001)
