@@ -118,14 +118,81 @@ def handle_message(event):
 def view_logs():
     try:
         rows = get_all_logs()
-        html = "<h2>使用者輸入記錄</h2><ul>"
-        for row in rows:
-            html += f"<li>🌙 關鍵字: {row[0]} ｜情緒: {row[1]} ｜時間: {row[2]}</li>"
-        html += "</ul>"
+        html = """
+        <html>
+        <head>
+            <title>Dream Oracle - 使用者夢境記錄</title>
+            <meta charset="utf-8">
+            <style>
+                body {
+                    font-family: "Noto Sans TC", Arial, sans-serif;
+                    padding: 2em;
+                    background: #f4f8fb;
+                }
+                h2 {
+                    color: #333;
+                    margin-bottom: 1em;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    background: white;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+                th, td {
+                    padding: 12px 15px;
+                    text-align: left;
+                    border-bottom: 1px solid #eee;
+                }
+                th {
+                    background-color: #e3f2fd;
+                    color: #333;
+                    font-weight: bold;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                .empty {
+                    color: #888;
+                    font-style: italic;
+                    margin-top: 1em;
+                }
+            </style>
+        </head>
+        <body>
+            <h2>🌙 使用者夢境記錄</h2>
+        """
+
+        if not rows:
+            html += "<p class='empty'>目前尚無資料紀錄。</p>"
+        else:
+            html += """
+            <table>
+                <thead>
+                    <tr>
+                        <th>夢境關鍵字</th>
+                        <th>情緒</th>
+                        <th>記錄時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+            """
+            for row in rows:
+                keyword = row[0]
+                emotion = row[1]
+                timestamp = row[2].strftime("%Y-%m-%d %H:%M:%S") if row[2] else "無時間"
+                html += f"<tr><td>{keyword}</td><td>{emotion}</td><td>{timestamp}</td></tr>"
+            html += "</tbody></table>"
+
+        html += "</body></html>"
         return html
+
     except Exception as e:
         traceback.print_exc()
         return f"❌ 查詢失敗：{str(e)}", 500
+
 
 # === ✅ [測試寫入] 手動觸發寫入一筆紀錄 ===
 @app.route("/log/<keyword>/<emotion>")
