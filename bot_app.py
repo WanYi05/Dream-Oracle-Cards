@@ -74,12 +74,8 @@ def handle_message(event):
             result = process_dream(user_input)
             print("[DEBUG] 處理結果：", result)
 
-            reply_text = (
-                f"🔍 解夢關鍵字：{user_input}\n"
-                f"💡 Gemini 補充：\n{result['text']}\n\n"
-                f"🎭 情緒判定：{result['emotion']}\n"
-                f"🃏 命定卡牌：「{result['title']}」\n👉 {result['message']}"
-            )
+            reply_text = f"💡 Gemini 解夢補充：\n{result['text']}"
+
 
             messages = []
             # 🔹 分段回覆避免超過 LINE 單則字數限制
