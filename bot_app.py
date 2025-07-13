@@ -68,6 +68,7 @@ def callback():
 def handle_message(event):
     user_input = event.message.text.strip()
     user_id = event.source.user_id
+    user_message = event.message.text
     print("👤 使用者 ID：", user_id)
 
     try:

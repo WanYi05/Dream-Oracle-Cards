@@ -12,9 +12,11 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS dream_logs (
             id SERIAL PRIMARY KEY,
+            user_id TEXT,
             keyword TEXT,
             emotion TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            timestamp TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '8 hour')
+
         )
     ''')
     conn.commit()
