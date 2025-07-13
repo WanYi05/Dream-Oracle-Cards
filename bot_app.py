@@ -63,6 +63,7 @@ def callback():
     return "OK"
 
 # === ✅ 處理使用者文字訊息 ===
+
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
@@ -76,7 +77,7 @@ def handle_message(event):
             result = process_dream(user_input)
             print("[DEBUG] 處理結果：", result)
 
-            # ✅ ⬇⬇⬇ 自動寫入資料庫（關鍵字 + 情緒）
+            # ✅ ✅ ✅ 加入這行，將使用者輸入與情緒寫入資料庫
             write_to_postgres(user_input, result["emotion"])
 
             reply_text = (
@@ -110,6 +111,7 @@ def handle_message(event):
     except Exception as e:
         traceback.print_exc()
         print(f"[ERROR] 回傳訊息失敗：{str(e)}")
+
 
 # === ✅ [查詢記錄] 顯示已寫入的夢境資料 ===
 @app.route("/logs", methods=["GET"])
