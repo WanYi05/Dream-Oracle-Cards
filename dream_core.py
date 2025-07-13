@@ -6,6 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from pathlib import Path
 import pandas as pd
+import google.generativeai as genai
 
 from dream_parser import get_dream_interpretation
 from emotion_mapper import map_emotion
@@ -13,6 +14,9 @@ from utils import save_result
 
 # ✅ 載入 .env 環境變數
 load_dotenv()
+
+# ✅ 設定 Gemini API 金鑰
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # ✅ 備用卡牌圖片清單（請放在 /Cards 資料夾中）
 ALL_CARD_IMAGES = [
@@ -80,6 +84,16 @@ def notify_developer(keyword, user_id=None):
     except Exception as e:
         print(f"[SKIPPED] 推播功能錯誤已略過：{e}")
 
+def get_dream_interpretation(keyword):
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        prompt = f"請根據以下夢境關鍵字提供一段簡短的夢境解析：'{keyword}'，語氣溫柔，有療癒感，限 80 字內"
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        print(f"[ERROR] Gemini API 錯誤：{e}")
+        return "⚠️ 尚未支援此夢境，請稍後再試或由開發者補充資料"
+
 def process_dream(keyword, user_id=None):
     dream_text = get_dream_interpretation(keyword)
 
@@ -116,7 +130,7 @@ def process_dream(keyword, user_id=None):
         "emotion": emotion,
         "title": card["title"],
         "message": card["message"],
-        "dream_text": dream_text  # ✅ 額外回傳原始解夢內容（如需自訂格式）
+        "dream_text": dream_text
     }
 
 # ✅ 本機測試入口

@@ -59,7 +59,7 @@ def callback():
 
     return "OK"
 
-# ✅ 使用者訊息處理邏輯
+# ✅ 使用者訊息處理鄉理
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_input = event.message.text.strip()
@@ -70,19 +70,23 @@ def handle_message(event):
         if user_input.lower() in ["q", "quit", "exit"]:
             messages = [TextMessage(text="👋 感謝使用 Dream Oracle，再會～")]
         else:
-            # ✅ 呼叫核心邏輯分析夢境
+            # ✅ 呼叫核心鄉理分析夢境
             result = process_dream(user_input)
             print("[DEBUG] 處理結果：", result)
 
-            reply_text = result["text"]
+            reply_text = (
+                f"🔍 解夢關鍵字：{user_input}\n"
+                f"🧠 解夢結果：\n{result['dream_text']}\n\n"
+                f"🌝 情緒判定：{result['emotion']}\n"
+                f"🃏 命定卡牌：「{result['title']}」\n"
+                f"👉 {result['message']}"
+            )
 
             messages = []
-            # 🔹 分段回覆避免超過 LINE 單則字數限制
             max_length = 4900
             for i in range(0, len(reply_text), max_length):
                 messages.append(TextMessage(text=reply_text[i:i+max_length]))
 
-            # ✅ 若有圖片則加入圖片訊息（Render 上請確認 domain）
             if result.get("image"):
                 image_url = f"https://dream-oracle.onrender.com/Cards/{result['image']}"
                 messages.append(ImageMessage(
@@ -90,9 +94,8 @@ def handle_message(event):
                     preview_image_url=image_url
                 ))
 
-            messages.append(TextMessage(text="請再輸入下一個夢境關鍵字吧，我們會為你持續指引。\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"))
+            messages.append(TextMessage(text="請再輸入下一個夢境關鍵字吧，我們會為你持續指徑\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"))
 
-        # ✅ 發送回覆訊息
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message_with_http_info(
