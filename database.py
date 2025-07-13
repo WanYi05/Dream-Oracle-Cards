@@ -31,8 +31,8 @@ def write_to_postgres(user_id, keyword, emotion):
     taiwan_time = datetime.now(timezone(timedelta(hours=8)))
 
     cursor.execute("""
-        INSERT INTO dream_logs (user_id, keyword, emotion) 
-        VALUES (%s, %s)
+        INSERT INTO dream_logs (user_id, keyword, emotion, timestamp) 
+        VALUES (%s, %s, %s, %s)
     """, (user_id, keyword, emotion, taiwan_time))
 
     conn.commit()
