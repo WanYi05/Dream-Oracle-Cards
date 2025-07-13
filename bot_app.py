@@ -8,6 +8,7 @@ from linebot.v3.messaging import (
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from dotenv import load_dotenv
 from pathlib import Path
+from dream_core import process_dream
 import os
 import json
 import google.generativeai as genai
@@ -62,27 +63,32 @@ def handle_message(event):
     try:
         if user_input.lower() in ["q", "quit", "exit"]:
             messages = [TextMessage(text="👋 感謝使用 Dream Oracle，再會～")]
-
         else:
-            # ✅ 直接使用 Gemini API 解釋夢境
-            try:
-                gemini_model = genai.GenerativeModel(model_name="gemini-1.5-flash")
-                gemini_response = gemini_model.generate_content(
-                    f"使用溫柔、療癒的語氣，釋解夢境「{user_input}」的賢察和心理意義，限制在 5 行以內。"
-                )
-                reply_text = gemini_response.text.strip()
-                reply_text = reply_text.encode("utf-8", "ignore").decode("utf-8")
-            except Exception as ge:
-                reply_text = "⚠️ 無法解析夢境，請稍候重試"
-                print(f"[Gemini Error] {str(ge).encode('utf-8', 'ignore').decode('utf-8')}")
+            # ✅ 使用自訂模組處理夢境
+            result = process_dream(user_input)
 
-            # ✅ 分段回覆阿拉長訊息
+            reply_text = (
+                f"🔍 解夢關鍵字：{user_input}\n"
+                f"💡 Gemini 補充：\n{result['gemini_text']}\n\n"
+                f"🎭 情緒判定：{result['emotion']}\n"
+                f"🃏 命定卡牌：「{result['title']}」\n👉 {result['message']}"
+            )
+
             messages = []
             max_length = 4900
             for i in range(0, len(reply_text), max_length):
                 messages.append(TextMessage(text=reply_text[i:i+max_length]))
 
-        # ✅ 回覆 LINE 使用者
+            # ✅ 加上卡牌圖片
+            image_url = f"https://dream-oracle.onrender.com/Cards/{result['image']}"
+            messages.append(ImageMessage(
+                original_content_url=image_url,
+                preview_image_url=image_url
+            ))
+
+            messages.append(TextMessage(text="請再輸入下一個夢境關鍵字吧，我們會為你持續指引。\n🌟 Dream Oracle 與你一起探索夢境與情緒 🌙"))
+
+        # ✅ 發送回覆
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message_with_http_info(
