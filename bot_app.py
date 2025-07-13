@@ -76,6 +76,9 @@ def handle_message(event):
             result = process_dream(user_input)
             print("[DEBUG] 處理結果：", result)
 
+            # ✅ ⬇⬇⬇ 自動寫入資料庫（關鍵字 + 情緒）
+            write_to_postgres(user_input, result["emotion"])
+
             reply_text = (
                 f"🔍 解夢關鍵字：{user_input}\n"
                 f"🧠 解夢結果：\n{result['dream_text']}\n\n"
