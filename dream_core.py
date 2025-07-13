@@ -28,9 +28,6 @@ ALL_CARD_IMAGES = [
 CARDS_DF = pd.read_csv(Path(__file__).parent / "emotion_cards_full.csv")
 
 def get_emotion_card(emotion: str):
-    """
-    從 emotion_cards_full.csv 中依情緒抽卡，若無對應則隨機抽一張。
-    """
     emotion_clean = emotion.strip()
     if emotion_clean in CARDS_DF["emotion"].unique():
         matched = CARDS_DF[CARDS_DF["emotion"] == emotion_clean]
@@ -67,7 +64,6 @@ def notify_developer(keyword, user_id=None):
             print("[WARNING] 環境變數未設定，跳過開發者通知")
             return
 
-        # from linebot.v3 import Configuration
         from linebot.v3.messaging.rest import Configuration
         from linebot.v3.messaging import MessagingApi, ApiClient, TextMessage
 
@@ -99,30 +95,31 @@ def process_dream(keyword, user_id=None):
         if not all(k in card for k in ["title", "message", "image"]):
             card = {
                 "title": "資料錯誤",
-                "message": "⚠️ 系統未能正確取得卡片內容。",
+                "message": "⚠️ 系統未能正確取得卡牌內容。",
                 "image": random.choice(ALL_CARD_IMAGES)
             }
 
     save_result(keyword, dream_text, emotion, card)
 
-    text = f"""\U0001f50d 解夢關鍵字：{keyword}
+    text = f"""
+🔍 解夢關鍵字：{keyword}
 🧠 解夢結果：
 {dream_text}
 
 🎭 情緒判定：{emotion}
-🃏 命定卡片：「{card['title']}」
+🃏 命定卡牌：「{card['title']}」
 👉 {card['message']}"""
 
     return {
-        "text": text,
+        "text": text.strip(),
         "image": card["image"],
-        "emotion": emotion,               # ✅ 加上情緒
-        "title": card["title"],           # ✅ 加上卡牌標題
-        "message": card["message"]        # ✅ 加上卡牌訊息
+        "emotion": emotion,
+        "title": card["title"],
+        "message": card["message"],
+        "dream_text": dream_text  # ✅ 額外回傳原始解夢內容（如需自訂格式）
     }
 
-
-# # ✅ 本機測試入口（可本地執行檢查）
+# ✅ 本機測試入口
 # if __name__ == "__main__":
 #     test_keyword = "火鍋寶寶外星人"
 #     result = process_dream(test_keyword, user_id="LocalTest")
